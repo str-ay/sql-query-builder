@@ -32,7 +32,7 @@ public class SqlBuilder implements Cloneable {
     }
 
     /**
-     * Изменить запрос и запросы от него зависимые
+     * Change query with similar changes in other queries linked with UNION
      */
     public SqlBuilder cascadeChange(Consumer<SqlBuilder> consumer) {
         consumer.accept(this);
@@ -41,15 +41,14 @@ public class SqlBuilder implements Cloneable {
     }
 
     /**
-     * Добавить в секцию WITH запрос с проверкой, что он окажется перед другим
-     * sqlBuilder - ссылка! Новый SqlBuilder не будет создан, сам создай если нужно
-     * new SqlBuilder(sqlBuilder)
+     * Add in WITH section with check, that it will be placed before other (with key {beforeQueryName})
+     * @param sqlBuilder - store link with no sqlBuilder object copy. Make it yourself if need: new SqlBuilder(sqlBuilder)
      *
-     * @param beforeKey имя запроса, перед которым добавить
+     * @param beforeQueryName query name that must be after
      * @see #addWith(SqlBuilder)
      */
-    public SqlBuilder addWith(SqlBuilder sqlBuilder, String beforeKey) {
-        withQueries.add(beforeKey, sqlBuilder);
+    public SqlBuilder addWith(SqlBuilder sqlBuilder, String beforeQueryName) {
+        withQueries.add(beforeQueryName, sqlBuilder);
         return this;
     }
 
@@ -63,14 +62,14 @@ public class SqlBuilder implements Cloneable {
     }
 
     /**
-     * Коллекция-строитель секции WITH
+     * [WITH] section builder
      */
     public WithQueriesCollection with() {
         return withQueries;
     }
 
     /**
-     * Строитель секции SELECT
+     * [SELECT] section builder
      */
     public SelectBuilder select() {
         return selectQueryBuilder;
@@ -233,6 +232,9 @@ public class SqlBuilder implements Cloneable {
 
         public SelectBuilder distinct(boolean dist) {
             this.distinct = dist;
+            if (!distinct) {
+                distinctOn = null;
+            }
             return this;
         }
 
@@ -441,6 +443,8 @@ public class SqlBuilder implements Cloneable {
 
         public void removeAllFields() {
             fields = new LinkedHashMap<>();
+            distinct = false;
+            distinctOn = null;
         }
 
         public void removeLimit() {
@@ -544,7 +548,7 @@ public class SqlBuilder implements Cloneable {
 
         /**
          * @param tableData добавляется как ресурс во FROM секции
-         * @throws IllegalArgumentException если передал пустое значение или ключ
+         * @throws IllegalArgumentException when tableData is empty
          */
         public FromBuilder addTable(String tableData) {
             return addTable(null, tableData);
@@ -813,7 +817,7 @@ public class SqlBuilder implements Cloneable {
     }
 
     /**
-     * WHERE ...
+     * [WHERE] section builder
      * <p>
      * Simple AND и OR. No wat group as AND (... OR ...)
      * Use {@link WhereBuilder#andCondition(String)} with not only AND elements
