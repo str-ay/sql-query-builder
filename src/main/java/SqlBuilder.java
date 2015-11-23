@@ -233,6 +233,9 @@ public class SqlBuilder implements Cloneable {
 
         public SelectBuilder distinct(boolean dist) {
             this.distinct = dist;
+            if (!distinct) {
+                distinctOn = null;
+            }
             return this;
         }
 
@@ -441,6 +444,8 @@ public class SqlBuilder implements Cloneable {
 
         public void removeAllFields() {
             fields = new LinkedHashMap<>();
+            distinct = false;
+            distinctOn = null;
         }
 
         public void removeLimit() {
